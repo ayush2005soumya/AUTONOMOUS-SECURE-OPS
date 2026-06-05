@@ -1,0 +1,12 @@
+# Security
+.env
+rnm_security_policies.txt  # Optional: ignore if company policies are highly confidential
+
+# Python
+__pycache__/
+*.pyc
+
+# Terraform (if you ran 'terraform init' locally)
+.terraform/
+*.tfstate
+*.tfstate.backup

@@ -1,0 +1,2 @@
+RNM Alliance Cloud Security Policy - Section 4: Storage
+All AWS S3 buckets must strictly block public access. The attributes block_public_acls, block_public_policy, ignore_public_acls, and restrict_public_buckets must all be set to true. No exceptions are permitted for development or production environments.
