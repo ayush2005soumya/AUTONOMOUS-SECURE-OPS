@@ -1,7 +1,7 @@
 import sys
 import re
 from openai import OpenAI
-from config import ACTING_MODEL, OPENROUTER_API_KEY
+from config import FAST_MODEL, OPENROUTER_API_KEY
 
 if not OPENROUTER_API_KEY:
     print("Error: OPENROUTER_API_KEY not found in .env")
@@ -66,7 +66,7 @@ def classify_intent(tf_code):
     
     try:
         response = client.chat.completions.create(
-            model=ACTING_MODEL,
+            model=FAST_MODEL,
             messages=messages,
             temperature=0.0,  # 🛠️ 2. Zero Temperature (Eliminates creative hallucinations)
             max_tokens=5      # 🛠️ 3. Token Limiter (Forces a short answer, prevents long explanations)
