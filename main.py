@@ -52,32 +52,49 @@ import requests  # Ensure you run 'pip install requests'
 from vector_db import LightweightVectorDB
 from guardrails import run_guardrails, classify_intent
 from agents import reasoning_agent_audit
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
-def send_power_automate_alert(audit_report, target_file, author_email="dev@rnm-alliance.com"):
-    print(f"📡 Sending Alert to Power Automate for {author_email}...")
+def send_email_alert(audit_report):
+    sender_email = os.environ.get("EMAIL_ADDRESS")
+    app_password = os.environ.get("GMAIL_APP_PASSWORD")
     
-    # This URL will be generated inside the Power Automate Portal
-    WEBHOOK_URL = os.environ.get("POWER_AUTOMATE_WEBHOOK_URL", "YOUR_POWER_AUTOMATE_HTTP_URL_HERE")
-    
-    if WEBHOOK_URL == "YOUR_POWER_AUTOMATE_HTTP_URL_HERE":
-        print("⚠️ Warning: Power Automate Webhook URL not configured. Skipping alert.")
+    if not sender_email or not app_password:
+        print("⚠️ Email credentials missing from environment. Skipping alert.")
         return
-
-    payload = {
-        "fileName": target_file,
-        "developerEmail": author_email,
-        "vulnerability": audit_report.get('vulnerability_found', 'Unknown vulnerability'),
-        "fixPlan": audit_report.get('fix_plan', 'No fix plan provided')
-    }
+        
+    print("📡 Sending Human-in-the-Loop Alert via Email...")
+    
+    msg = MIMEMultipart()
+    msg['From'] = sender_email
+    msg['To'] = sender_email  # Sending the alert directly to yourself
+    msg['Subject'] = "🚨 AI DevSecOps Alert: Pipeline Blocked"
+    
+    # Creates a highly professional HTML template for the email
+    html_body = f"""
+    <html>
+        <body style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+            <h2 style="color: #d9534f;">⚠️ Pipeline Blocked by Autonomous AI Agent</h2>
+            <p>The DevSecOps agent has detected a strict policy violation in the latest commit.</p>
+            <div style="background-color: #f4f4f4; padding: 15px; border-left: 5px solid #d9534f; margin-bottom: 20px;">
+                <pre style="white-space: pre-wrap; font-family: monospace;">{audit_report}</pre>
+            </div>
+            <p>Please review your Jenkins dashboard to Authorize or Reject this deployment.</p>
+        </body>
+    </html>
+    """
+    msg.attach(MIMEText(html_body, 'html'))
     
     try:
-        response = requests.post(WEBHOOK_URL, json=payload, headers={'Content-Type': 'application/json'})
-        if response.status_code in [200, 202]:
-            print("✅ Alert successfully dispatched to Power Automate gateway.")
-        else:
-            print(f"⚠️ Warning: Power Automate returned status code {response.status_code}")
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.starttls()
+        server.login(sender_email, app_password)
+        server.send_message(msg)
+        server.quit()
+        print("📧 Email Alert Sent Successfully!")
     except Exception as e:
-        print(f"🚨 Failed to contact Power Automate cloud endpoint: {e}")
+        print(f"❌ Failed to send email: {e}")
 
 if __name__ == "__main__":
     # Dynamically handle files passed by Jenkins, default to main.tf
@@ -118,8 +135,8 @@ if __name__ == "__main__":
     print(f"📋 POLICY-ALIGNED FIX PLAN: {audit_report.get('fix_plan')}\n")
     
     # 4. Outbound Notification System
-    send_power_automate_alert(audit_report, target_file)
+    # Swap the old Power Automate call for the new Email call
+    send_email_alert(audit_report)
     
-    print("⏸️ Pipeline Blocked: Awaiting Human-in-the-Loop clearance via MS Teams.")
-    # Critical: Returning exit code 1 forces Jenkins Job 1 to FAIL, blocking deployment.
+    print("⏸️ Pipeline Blocked: Awaiting Human-in-the-Loop clearance.")
     sys.exit(1)
