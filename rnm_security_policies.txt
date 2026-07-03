@@ -1,2 +1,36 @@
-RNM Alliance Cloud Security Policy - Section 4: Storage
-All AWS S3 buckets must strictly block public access. The attributes block_public_acls, block_public_policy, ignore_public_acls, and restrict_public_buckets must all be set to true. No exceptions are permitted for development or production environments.
+RNM Alliance Cloud Security Policy
+Section 1: Identity and Access Management (IAM)
+
+1.1 Principle of Least Privilege: IAM policies must never use full wildcard actions (Action = "*") or wildcard resources (Resource = "*") unless explicitly required for administrative roles.
+
+1.2 Hardcoded Credentials: Terraform configurations must never contain hardcoded AWS access keys, secret keys, or passwords. All secrets must be referenced via AWS Secrets Manager or secure variable injection.
+
+1.3 IAM User Creation: The creation of manual IAM users is strictly prohibited. All access must be federated through an identity provider using IAM Roles.
+
+Section 2: Network Security & Firewalls (VPC & Security Groups)
+
+2.1 Public Ingress: AWS Security Groups must never allow unrestricted inbound traffic (cidr_blocks = ["0.0.0.0/0"]) for administrative ports, specifically SSH (Port 22) and RDP (Port 3389).
+
+2.2 Subnet Placement: All compute instances (EC2) and managed databases (RDS) must be deployed into Private Subnets. Direct deployment into Public Subnets is a critical violation.
+
+2.3 Egress Traffic: Outbound network traffic (egress) must be explicitly defined. "Allow all outbound" (0.0.0.0/0 on all ports) is prohibited for databases and internal applications.
+
+Section 3: Compute & Server Security (EC2)
+
+3.1 Metadata Service: All EC2 instances must enforce the use of IMDSv2 (Instance Metadata Service Version 2) to prevent SSRF (Server-Side Request Forgery) attacks. The attribute http_tokens = "required" must be present.
+
+3.2 Public IP Assignment: EC2 instances must not have associate_public_ip_address = true unless placed in an explicitly approved DMZ subnet.
+
+Section 4: Storage Security (S3 & EBS)
+
+4.1 S3 Public Access: All AWS S3 buckets must strictly block public access. The aws_s3_bucket_public_access_block resource must be attached with block_public_acls, block_public_policy, ignore_public_acls, and restrict_public_buckets all set to true.
+
+4.2 Storage Encryption: All S3 buckets and EBS (Elastic Block Store) volumes must be encrypted at rest. Unencrypted storage provisioning will result in an immediate pipeline failure.
+
+4.3 S3 Versioning: S3 buckets classified for production use must have versioning enabled (status = "Enabled") to protect against accidental deletion or ransomware overwrites.
+
+Section 5: Database Security (RDS & DynamoDB)
+
+5.1 RDS Public Accessibility: Relational databases must never be publicly accessible. The attribute publicly_accessible must always be explicitly set to false.
+
+5.2 Database Encryption: All RDS instances and DynamoDB tables must have encryption at rest enabled (storage_encrypted = true).
