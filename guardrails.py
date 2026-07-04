@@ -30,8 +30,10 @@ def run_guardrails(tf_code):
         "aws_iam_access_key", # Prevents creating raw IAM keys in code
         "aws_iam_user_login_profile" # Prevents creating backdoor console users
     ]
+    
+    # FIX 1: Use regex word boundaries (\b) to prevent substring false positives
     for word in forbidden_commands:
-        if word in tf_code:
+        if re.search(rf'\b{word}\b', tf_code):
             print(f"🚨 GUARDRAIL BLOCKED: Code contains forbidden action or resource '{word}'.")
             sys.exit(1)
 
@@ -81,8 +83,8 @@ def classify_intent(tf_code):
         raw_result = response.choices[0].message.content.strip().upper()
         clean_result = ''.join(char for char in raw_result if char.isalnum())
             
-        # 🛠️ 5. Exact Match Validation (Instead of a loose 'in' check)
-        if clean_result != "YES":
+        # FIX 2: Use startswith to handle slight LLM verbosity (e.g. "YESITIS") safely
+        if not clean_result.startswith("YES"):
             print(f"🚨 INTENT REJECTED: Input is not recognized as Terraform code. (Model replied: {raw_result})")
             sys.exit(1)
             

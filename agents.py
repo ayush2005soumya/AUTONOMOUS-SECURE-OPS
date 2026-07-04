@@ -11,8 +11,11 @@ client = OpenAI(
 
 def reasoning_agent_audit(tf_code, policy_context):
     print("🧠 Cloud Reasoning Agent: Analyzing code against strict RNM company policies...")
-    prompt = f"""
-    You are a Lead DevSecOps Auditor. 
+    
+    # FIX 2: Split persona into a system message
+    system_message = "You are a Lead DevSecOps Auditor. You must return a valid JSON object matching the exact requested schema, with no additional text or markdown."
+    
+    user_prompt = f"""
     Analyze this code against the provided RNM Company Policy.
     
     COMPANY POLICY CONTEXT: 
@@ -29,10 +32,13 @@ def reasoning_agent_audit(tf_code, policy_context):
     {tf_code}
     """
     
-    # Inside reasoning_agent_audit...
     response = client.chat.completions.create(
         model=REASONING_MODEL,
-        messages=[{"role": "user", "content": prompt}]
+        messages=[
+            {"role": "system", "content": system_message},
+            {"role": "user", "content": user_prompt}
+        ],
+        temperature=0.0  # FIX 1: Enforce zero temperature for strict JSON generation
     )
     
     # 🛠️ DEFENSIVE CHECK
@@ -56,19 +62,25 @@ def reasoning_agent_audit(tf_code, policy_context):
 
 def acting_agent_remediate(tf_code, fix_plan):
     print("🦾 Cloud Acting Agent: Writing secure code based on the plan...")
-    prompt = f"""
-    You are an Infrastructure Engineer. Apply this fix plan to the code.
+    
+    # FIX 2: Split persona into a system message
+    system_message = "You are an Infrastructure Engineer. You write clean, valid Terraform code. You output ONLY raw HCL code. Never use markdown formatting, backticks, or explanatory text."
+    
+    user_prompt = f"""
+    Apply this fix plan to the code.
     Fix Plan: {fix_plan}
     
-    Return ONLY the raw, completely rewritten Terraform code. No markdown formatting.
     Code:
     {tf_code}
     """
     
-    # Inside acting_agent_remediate...
     response = client.chat.completions.create(
         model=ACTING_MODEL,
-        messages=[{"role": "user", "content": prompt}]
+        messages=[
+            {"role": "system", "content": system_message},
+            {"role": "user", "content": user_prompt}
+        ],
+        temperature=0.0  # FIX 1: Enforce zero temperature to prevent invalid Terraform syntax
     )
     
     # 🛠️ DEFENSIVE CHECK

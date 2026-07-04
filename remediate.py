@@ -1,9 +1,8 @@
 # remediate.py
 import sys
+import os
 import subprocess
 from agents import acting_agent_remediate
-
-# Inside remediate.py
 
 def run_git_operations(target_file, commit_branch, merge_branch):
     print(f"🐙 Initializing Git workflow on branch: {commit_branch}...")
@@ -23,6 +22,8 @@ def run_git_operations(target_file, commit_branch, merge_branch):
         subprocess.run(["git", "add", target_file], check=True)
         
         # 3. Commit with an enterprise security tag
+        # Note: If the file didn't change, git commit will throw an error. 
+        # For this pipeline, we assume the Acting Agent always modifies the file if it reaches here.
         subprocess.run(["git", "commit", "-m", f"security: automated patch applied to {target_file} via RNM Gatekeeper Agent"], check=True)
         
         # 4. Push the branch upstream (using --set-upstream to ensure remote tracking)
@@ -47,17 +48,24 @@ def run_git_operations(target_file, commit_branch, merge_branch):
         sys.exit(1)
 
 if __name__ == "__main__":
-    # Now requires 4 arguments: script.py, file, fix_plan, commit_branch, merge_branch
-    if len(sys.argv) < 5:
-        print("Error: Missing required arguments. Usage: python remediate.py [filename] '[fix_plan]' [commit_branch] [merge_branch]")
+    # FIX 2: Now requires 3 arguments: script.py, file, commit_branch, merge_branch
+    if len(sys.argv) < 4:
+        print("Error: Missing required arguments. Usage: python remediate.py [filename] [commit_branch] [merge_branch]")
         sys.exit(1)
         
     target_file = sys.argv[1]
-    fix_plan = sys.argv[2]
-    commit_branch = sys.argv[3]
-    merge_branch = sys.argv[4]
+    commit_branch = sys.argv[2]
+    merge_branch = sys.argv[3]
     
     print(f"🦾 Initializing Acting Agent patch sequence for: {target_file}")
+    
+    # FIX 1: Safely load the fix plan directly from the disk, bypassing Bash entirely
+    try:
+        with open("fix_plan_cache.txt", "r") as cache:
+            fix_plan = cache.read()
+    except FileNotFoundError:
+        print("🚨 Error: fix_plan_cache.txt not found. Cannot perform remediation without a plan.")
+        sys.exit(1)
     
     try:
         with open(target_file, "r") as f:

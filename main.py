@@ -1,54 +1,6 @@
-# # main.py
-# import sys
-# from vector_db import LightweightVectorDB
-# from guardrails import run_guardrails, classify_intent
-# from agents import reasoning_agent_audit, acting_agent_remediate
-
-# if __name__ == "__main__":
-#     target_file = "main.tf"
-    
-#     print("📚 Initializing Local Vector Database...")
-#     vector_db = LightweightVectorDB()
-#     try:
-#         with open("rnm_security_policies.txt", "r") as f:
-#             vector_db.add_document(f.read())
-#     except FileNotFoundError:
-#         print("Error: Policy file not found.")
-#         sys.exit(1)
-
-#     with open(target_file, "r") as f:
-#         current_code = f.read()
-
-#     # 1. Alignment & Security Checks
-#     classify_intent(current_code)
-#     run_guardrails(current_code)
-    
-#     # 2. RAG Retrieval 
-#     retrieved_policy = vector_db.search("What are the security rules for AWS S3 buckets?")
-    
-#     # 3. Reasoning 
-#     audit_report = reasoning_agent_audit(current_code, retrieved_policy)
-    
-#     if audit_report.get("is_secure"):
-#         print("✅ Pipeline Passed: Infrastructure is secure.")
-#         sys.exit(0)
-        
-#     print(f"\n🚨 VULNERABILITY DETECTED: {audit_report.get('vulnerability_found')}")
-#     print(f"📋 POLICY-ALIGNED FIX PLAN: {audit_report.get('fix_plan')}\n")
-    
-#     # 4. Acting
-#     secure_code = acting_agent_remediate(current_code, audit_report.get("fix_plan"))
-    
-#     # 5. Tool Calling (Save File)
-#     with open(target_file, 'w') as file:
-#         file.write(secure_code)
-    
-#     print("✅ Auto-Remediation Complete: File rewritten entirely by local open-source AI.")
-
-# main.py
 import sys
 import os
-import requests  # Ensure you run 'pip install requests'
+import requests  
 from vector_db import LightweightVectorDB
 from guardrails import run_guardrails, classify_intent
 from agents import reasoning_agent_audit
@@ -71,16 +23,27 @@ def send_email_alert(audit_report):
     msg['To'] = sender_email  # Sending the alert directly to yourself
     msg['Subject'] = "🚨 AI DevSecOps Alert: Pipeline Blocked"
     
-    # Creates a highly professional HTML template for the email
+    # FIX 2: Extract specific fields from the dictionary for clean HTML formatting
+    vuln_found = audit_report.get('vulnerability_found', 'Unknown vulnerability detected.')
+    fix_plan = audit_report.get('fix_plan', 'No remediation plan provided.')
+    
     html_body = f"""
     <html>
         <body style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
             <h2 style="color: #d9534f;">⚠️ Pipeline Blocked by Autonomous AI Agent</h2>
             <p>The DevSecOps agent has detected a strict policy violation in the latest commit.</p>
-            <div style="background-color: #f4f4f4; padding: 15px; border-left: 5px solid #d9534f; margin-bottom: 20px;">
-                <pre style="white-space: pre-wrap; font-family: monospace;">{audit_report}</pre>
+            
+            <h3 style="color: #d9534f; margin-bottom: 5px;">Vulnerability Found:</h3>
+            <div style="background-color: #fdf0f0; padding: 15px; border-left: 5px solid #d9534f; margin-bottom: 20px;">
+                <p style="margin: 0; font-family: monospace;">{vuln_found}</p>
             </div>
-            <p>Please review your Jenkins dashboard to Authorize or Reject this deployment.</p>
+            
+            <h3 style="color: #5bc0de; margin-bottom: 5px;">AI Remediation Plan:</h3>
+            <div style="background-color: #f4f8fa; padding: 15px; border-left: 5px solid #5bc0de; margin-bottom: 20px;">
+                <p style="margin: 0; font-family: monospace;">{fix_plan}</p>
+            </div>
+            
+            <p>Please review your Jenkins dashboard to <strong>Authorize</strong> or <strong>Reject</strong> this deployment.</p>
         </body>
     </html>
     """
@@ -97,12 +60,12 @@ def send_email_alert(audit_report):
         print(f"❌ Failed to send email: {e}")
 
 if __name__ == "__main__":
-    # Dynamically handle files passed by Jenkins, default to main.tf
     target_file = sys.argv[1] if len(sys.argv) > 1 else "main.tf"
     
     print(f"🔍 Starting Autonomous Scan on target infrastructure file: {target_file}")
     print("📚 Initializing Local Vector Database...")
     vector_db = LightweightVectorDB()
+    
     try:
         with open("rnm_security_policies.txt", "r") as f:
             vector_db.add_document(f.read())
@@ -122,7 +85,9 @@ if __name__ == "__main__":
     run_guardrails(current_code)
     
     # 2. RAG Retrieval 
-    retrieved_policy = vector_db.search("What are the security rules for AWS S3 buckets?")
+    # FIX 1: Make the vector search dynamic by embedding the first 1000 characters of the target code
+    search_context = f"Find security rules related to this infrastructure code: {current_code[:1000]}"
+    retrieved_policy = vector_db.search(search_context)
     
     # 3. Reasoning 
     audit_report = reasoning_agent_audit(current_code, retrieved_policy)
@@ -135,11 +100,9 @@ if __name__ == "__main__":
     print(f"📋 POLICY-ALIGNED FIX PLAN: {audit_report.get('fix_plan')}\n")
     
     # 4. Outbound Notification System
-    # Swap the old Power Automate call for the new Email call
-    # 4. Outbound Notification System
     send_email_alert(audit_report)
     
-    # NEW: Save the fix plan to disk for remediate.py to use later
+    # Save the fix plan to disk for remediate.py to use later
     with open("fix_plan_cache.txt", "w") as plan_file:
         plan_file.write(audit_report.get('fix_plan'))
     
