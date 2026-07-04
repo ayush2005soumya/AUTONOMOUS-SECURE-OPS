@@ -3,24 +3,43 @@ import sys
 import subprocess
 from agents import acting_agent_remediate
 
-def run_git_operations(target_file):
-    print("🐙 Initializing Git workflow for automated remediation...")
-    branch_name = f"security-remediation-{target_file.replace('.', '-')}"
+# Inside remediate.py
+
+def run_git_operations(target_file, commit_branch, merge_branch):
+    print(f"🐙 Initializing Git workflow on branch: {commit_branch}...")
     
     try:
-        # Create a new isolated branch for the fix
-        subprocess.run(["git", "checkout", "-b", branch_name], check=True)
-        # Stage the secure code rewritten by the AI
-        subprocess.run(["git", "add", target_file], check=True)
-        # Commit with an enterprise security tag
-        subprocess.run(["git", "commit", "-m", f"security: automated patch applied to {target_file} via RNM Gatekeeper Agent"], check=True)
-        # Push branch upstream
-        subprocess.run(["git", "push", "origin", branch_name], check=True)
+        # 1. Safely handle branch checkout or creation
+        try:
+            # Try to switch to the branch if it already exists
+            subprocess.run(["git", "checkout", commit_branch], check=True, capture_output=True)
+            print(f"   Switched to existing branch: {commit_branch}")
+        except subprocess.CalledProcessError:
+            # If it fails, the branch doesn't exist, so we create it
+            subprocess.run(["git", "checkout", "-b", commit_branch], check=True)
+            print(f"   Created and switched to new branch: {commit_branch}")
         
-        print("🚀 Opening GitHub Pull Request using GitHub CLI...")
+        # 2. Stage the secure code rewritten by the AI
+        subprocess.run(["git", "add", target_file], check=True)
+        
+        # 3. Commit with an enterprise security tag
+        subprocess.run(["git", "commit", "-m", f"security: automated patch applied to {target_file} via RNM Gatekeeper Agent"], check=True)
+        
+        # 4. Push the branch upstream (using --set-upstream to ensure remote tracking)
+        subprocess.run(["git", "push", "--set-upstream", "origin", commit_branch], check=True)
+        
+        print(f"🚀 Opening GitHub Pull Request against base branch: {merge_branch}...")
         pr_title = f"🚨 DevSecOps Patch: Automated Remediation for {target_file}"
-        pr_body = "This Pull Request was autonomously generated and authorized via Microsoft Teams approval routing."
-        subprocess.run(["gh", "pr", "create", "--title", pr_title, "--body", pr_body], check=True)
+        pr_body = "This Pull Request was autonomously generated and authorized via Human-in-the-Loop IDE approval."
+        
+        # 5. Use GitHub CLI to target the specific merge branch
+        subprocess.run([
+            "gh", "pr", "create", 
+            "--title", pr_title, 
+            "--body", pr_body,
+            "--base", merge_branch,   
+            "--head", commit_branch   
+        ], check=True)
         print("✅ Pull Request successfully created and staged for peer review.")
         
     except subprocess.CalledProcessError as e:
