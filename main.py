@@ -1,6 +1,6 @@
 import sys
 import os
-import requests  
+import requests 
 from vector_db import LightweightVectorDB
 from guardrails import run_guardrails, classify_intent
 from agents import reasoning_agent_audit
@@ -11,6 +11,10 @@ from email.mime.multipart import MIMEMultipart
 def send_email_alert(audit_report):
     sender_email = os.environ.get("EMAIL_ADDRESS")
     app_password = os.environ.get("GMAIL_APP_PASSWORD")
+    # New: The URL where your Next.js frontend is hosted (e.g., https://your-site.com)
+    app_base_url = os.environ.get("APP_BASE_URL", "http://localhost:300") 
+    # New: Jenkins automatically provides the BUILD_NUMBER env var
+    build_id = os.environ.get("BUILD_NUMBER", "1")
     
     if not sender_email or not app_password:
         print("⚠️ Email credentials missing from environment. Skipping alert.")
@@ -18,12 +22,14 @@ def send_email_alert(audit_report):
         
     print("📡 Sending Human-in-the-Loop Alert via Email...")
     
+    # Construct the link to your Approval API
+    approval_link = f"{app_base_url}/approve?buildId={build_id}"
+    
     msg = MIMEMultipart()
     msg['From'] = sender_email
-    msg['To'] = sender_email  # Sending the alert directly to yourself
-    msg['Subject'] = "🚨 AI DevSecOps Alert: Pipeline Blocked"
+    msg['To'] = sender_email
+    msg['Subject'] = f"🚨 AI DevSecOps Alert: Pipeline Blocked (Build #{build_id})"
     
-    # FIX 2: Extract specific fields from the dictionary for clean HTML formatting
     vuln_found = audit_report.get('vulnerability_found', 'Unknown vulnerability detected.')
     fix_plan = audit_report.get('fix_plan', 'No remediation plan provided.')
     
@@ -43,7 +49,14 @@ def send_email_alert(audit_report):
                 <p style="margin: 0; font-family: monospace;">{fix_plan}</p>
             </div>
             
-            <p>Please review your Jenkins dashboard to <strong>Authorize</strong> or <strong>Reject</strong> this deployment.</p>
+            <div style="text-align: center; margin-top: 30px;">
+                <a href="{approval_link}" style="display: inline-block; padding: 12px 25px; background-color: #059669; color: #ffffff; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">
+                    ✅ Authorize & Deploy
+                </a>
+                <p style="margin-top: 15px; font-size: 12px; color: #888;">
+                    Build ID: {build_id}
+                </p>
+            </div>
         </body>
     </html>
     """
@@ -55,7 +68,7 @@ def send_email_alert(audit_report):
         server.login(sender_email, app_password)
         server.send_message(msg)
         server.quit()
-        print("📧 Email Alert Sent Successfully!")
+        print("📧 Email Alert Sent Successfully with Authorization Link!")
     except Exception as e:
         print(f"❌ Failed to send email: {e}")
 
