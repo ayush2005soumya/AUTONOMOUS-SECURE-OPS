@@ -136,7 +136,12 @@ if __name__ == "__main__":
     
     # 4. Outbound Notification System
     # Swap the old Power Automate call for the new Email call
+    # 4. Outbound Notification System
     send_email_alert(audit_report)
+    
+    # NEW: Save the fix plan to disk for remediate.py to use later
+    with open("fix_plan_cache.txt", "w") as plan_file:
+        plan_file.write(audit_report.get('fix_plan'))
     
     print("⏸️ Pipeline Blocked: Awaiting Human-in-the-Loop clearance.")
     sys.exit(1)
