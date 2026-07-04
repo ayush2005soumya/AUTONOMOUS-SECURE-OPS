@@ -47,12 +47,15 @@ def run_git_operations(target_file, commit_branch, merge_branch):
         sys.exit(1)
 
 if __name__ == "__main__":
-    if len(sys.argv) < 3:
-        print("Error: Missing required arguments. Usage: python remediate.py [filename] '[fix_plan]'")
+    # Now requires 4 arguments: script.py, file, fix_plan, commit_branch, merge_branch
+    if len(sys.argv) < 5:
+        print("Error: Missing required arguments. Usage: python remediate.py [filename] '[fix_plan]' [commit_branch] [merge_branch]")
         sys.exit(1)
         
     target_file = sys.argv[1]
     fix_plan = sys.argv[2]
+    commit_branch = sys.argv[3]
+    merge_branch = sys.argv[4]
     
     print(f"🦾 Initializing Acting Agent patch sequence for: {target_file}")
     
@@ -71,5 +74,5 @@ if __name__ == "__main__":
         file.write(secure_code)
     print("💾 Local workspace successfully synchronized with policy-compliant code configuration.")
     
-    # Run the downstream automation chain to push code and open a PR
-    run_git_operations(target_file)
+    # Run the downstream automation chain using the user-defined branches
+    run_git_operations(target_file, commit_branch, merge_branch)
