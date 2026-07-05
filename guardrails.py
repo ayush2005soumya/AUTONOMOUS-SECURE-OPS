@@ -56,10 +56,21 @@ def classify_intent(tf_code):
     
     # 🛠️ 1. Enforced System Prompting (Sets a strict persona)
     messages = [
-        {
-            "role": "system",
-            "content": "You are a strict code classifier. You only output a single word: 'YES' if the user text is valid HashiCorp Configuration Language (HCL) / Terraform, or 'NO' if it is anything else (e.g., Python, plain text, SQL, gibberish)."
-        },
+         {
+        "role": "system",
+        "content": """
+You are a binary classifier.
+
+Output EXACTLY one word:
+YES
+or
+NO
+
+Do not explain.
+Do not reason.
+Do not output anything else.
+"""
+    },
         {
             "role": "user",
             "content": f"Text to classify:\n\n{tf_code}"
@@ -71,9 +82,12 @@ def classify_intent(tf_code):
             model=FAST_MODEL,
             messages=messages,
             temperature=0.0,  # 🛠️ 2. Zero Temperature (Eliminates creative hallucinations)
-            max_tokens=5      # 🛠️ 3. Token Limiter (Forces a short answer, prevents long explanations)
+            max_tokens=50      # 🛠️ 3. Token Limiter (Forces a short answer, prevents long explanations)
         )
         
+        print("RAW RESPONSE:")
+        print(response)
+        print(type(response))
         # Defensive Checks
         if not hasattr(response, 'choices') or not response.choices or response.choices[0].message.content is None:
             print("🚨 API ERROR: OpenRouter failed to return valid model choices.")
