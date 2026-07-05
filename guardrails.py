@@ -84,10 +84,7 @@ Do not output anything else.
             temperature=0.0,  # 🛠️ 2. Zero Temperature (Eliminates creative hallucinations)
             max_tokens=50      # 🛠️ 3. Token Limiter (Forces a short answer, prevents long explanations)
         )
-        
-        print("RAW RESPONSE:")
-        print(response)
-        print(type(response))
+
         # Defensive Checks
         if not hasattr(response, 'choices') or not response.choices or response.choices[0].message.content is None:
             print("🚨 API ERROR: OpenRouter failed to return valid model choices.")
