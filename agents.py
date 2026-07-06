@@ -2,11 +2,16 @@ import json
 import re
 import sys
 from openai import OpenAI
-from config import ACTING_MODEL, REASONING_MODEL, OPENROUTER_API_KEY
+from config import ACTING_MODEL, REASONING_MODEL, OPENROUTER_API_KEY, GEMINI_API_KEY
 
-client = OpenAI(
+client1 = OpenAI(
     base_url="https://openrouter.ai/api/v1",
     api_key=OPENROUTER_API_KEY,
+)
+
+client2 = OpenAI(
+    base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+    api_key=GEMINI_API_KEY,
 )
 
 def reasoning_agent_audit(tf_code, policy_context):
@@ -32,7 +37,7 @@ def reasoning_agent_audit(tf_code, policy_context):
     {tf_code}
     """
     
-    response = client.chat.completions.create(
+    response = client2.chat.completions.create(
         model=REASONING_MODEL,
         messages=[
             {"role": "system", "content": system_message},
@@ -74,7 +79,7 @@ def acting_agent_remediate(tf_code, fix_plan):
     {tf_code}
     """
     
-    response = client.chat.completions.create(
+    response = client2.chat.completions.create(
         model=ACTING_MODEL,
         messages=[
             {"role": "system", "content": system_message},
