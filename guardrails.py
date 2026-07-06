@@ -1,16 +1,21 @@
 import sys
 import re
 from openai import OpenAI
-from config import FAST_MODEL, OPENROUTER_API_KEY
+from config import FAST_MODEL, OPENROUTER_API_KEY, GEMINI_API_KEY
 
 if not OPENROUTER_API_KEY:
     print("Error: OPENROUTER_API_KEY not found in .env")
     sys.exit(1)
 
 # Initialize OpenRouter Client
-client = OpenAI(
+client1 = OpenAI(
     base_url="https://openrouter.ai/api/v1",
     api_key=OPENROUTER_API_KEY,
+)
+
+client2 = OpenAI(
+    base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+    api_key=GEMINI_API_KEY,
 )
 
 def run_guardrails(tf_code):
@@ -78,12 +83,15 @@ Do not output anything else.
     ]
     
     try:
-        response = client.chat.completions.create(
+        response = client2.chat.completions.create(
             model=FAST_MODEL,
             messages=messages,
             temperature=0.0,  # 🛠️ 2. Zero Temperature (Eliminates creative hallucinations)
-            max_tokens=50      # 🛠️ 3. Token Limiter (Forces a short answer, prevents long explanations)
+            max_tokens=100      # 🛠️ 3. Token Limiter (Forces a short answer, prevents long explanations)
         )
+
+        # raw_result = response.choices[0].message.content.strip()
+        # print(f"   [DEBUG] Raw Model Output: '{raw_result}'")
 
         # Defensive Checks
         if not hasattr(response, 'choices') or not response.choices or response.choices[0].message.content is None:
