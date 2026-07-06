@@ -19,5 +19,8 @@ if not GEMINI_API_KEY:
 # 100% OpenRouter Architecture
 EMBEDDING_MODEL = "nvidia/llama-nemotron-embed-vl-1b-v2:free"
 FAST_MODEL = "gemini-3.1-flash-lite"
-ACTING_MODEL = "openai/gpt-oss-20b:free"    
-REASONING_MODEL = "openai/gpt-oss-120b:free"
+# ACTING_MODEL = "openai/gpt-oss-20b:free"    
+# REASONING_MODEL = "openai/gpt-oss-120b:free"
+
+ACTING_MODEL = "gemini-3.1-flash-lite"    
+REASONING_MODEL = "gemini-3.1-flash-lite"
